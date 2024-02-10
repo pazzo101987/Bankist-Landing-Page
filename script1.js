@@ -9,6 +9,10 @@ const btnCloseModal = document.querySelector('.btn--close-modal');
 const btnsOpenModal = document.querySelectorAll('.btn--show-modal');
 const btnScrollTo = document.querySelector('.btn--scroll-to');
 const section1 = document.querySelector('#section--1');
+const tabs = document.querySelectorAll('.operations__tab');
+const tabsContainer = document.querySelector('.operations__tab-container');
+const tabsContent = document.querySelectorAll('.operations__content');
+const nav = document.querySelector('.nav');
 
 const openModal = function (e) {
   e.preventDefault();
@@ -31,12 +35,14 @@ document.addEventListener('keydown', function (e) {
     closeModal();
   }
 });
-// Scrolling :
+
+// SCROLLING
+
 btnScrollTo.addEventListener('click', function (e) {
   section1.scrollIntoView({ behavior: 'smooth' });
 });
 
-// Page Navigation :
+// PAGE NAVIGATION
 
 // document.querySelectorAll('.nav__link').forEach(function (el) {
 //   el.addEventListener('click', function (e) {
@@ -60,11 +66,7 @@ document.querySelector('.nav__links').addEventListener('click', function (e) {
   }
 });
 
-// Tabbed Component :
-
-const tabs = document.querySelectorAll('.operations__tab');
-const tabsContainer = document.querySelector('.operations__tab-container');
-const tabsContent = document.querySelectorAll('.operations__content');
+// TABBED COMPONENT
 
 // here we will use event delegation :
 // we add the event to the parent element of the buttons :
@@ -87,6 +89,215 @@ tabsContainer.addEventListener('click', function (e) {
   document
     .querySelector(`.operations__content--${clicked.dataset.tab}`)
     .classList.add('operations__content--active'); // this is to get the number of content tab from the data attribute ( check HTML)
+});
+// MENUE FADE ANIMATION
+
+const handHover = function (e, opacity) {
+  if (e.target.classList.contains('nav__link')) {
+    const link = e.target; //this is to defind the link where the mouse will hit
+    const siblings = link.closest('.nav').querySelectorAll('.nav__link'); //this is to select all of these links into one constant using the closest to go up and then select all the element under this parent with the class name ' nav__link'
+    const logo = link.closest('.nav').querySelector('img');
+    siblings.forEach(el => {
+      //since siblings contains also the element clicked itself , so here with this condition we will eliminate it from changing the opacity to 0.5
+      if (el !== link) el.style.opacity = opacity;
+    });
+    logo.style.opacity = opacity;
+  }
+};
+nav.addEventListener('mouseover', function (e) {
+  handHover(e, 0.5);
+});
+
+nav.addEventListener('mouseout', function (e) {
+  handHover(e, 1);
+});
+
+//STICKY NAVIGATIO:
+
+// const initialCoords = section1.getBoundingClientRect(); // this is will give us information about the section 1 like height, width, distance from the top , etc...
+// window.addEventListener('scroll', function () {
+//   if (window.scrollY > initialCoords.top) {
+//     nav.classList.add('sticky');
+//   } else {
+//     nav.classList.remove('sticky');
+//   }
+// });
+// this method works , but it can generate problems for old devices
+
+//Sticky navigation using Intersection Observer API :
+
+const header = document.querySelector('.header');
+const navHeight = nav.getBoundingClientRect().height;
+
+// the callback function :
+
+const stickyNav = function (entries) {
+  const [entry] = entries; // it's similar to [entry] = entries [0] ==> takes the first element of the entries array and assigns it to the variable entry.
+  console.log(entry);
+  if (!entry.isIntersecting) {
+    nav.classList.add('sticky');
+  } else {
+    nav.classList.remove('sticky');
+  }
+};
+
+// the options :
+
+const stickyOptions = {
+  root: null, // that's mean we're refering to the viewport
+  threshold: 0, // that's mean the header is no longer seen in the viewport
+  rootMargin: `-${navHeight}px`, //this is an options to apply the callback function x px earlier or 0px later
+};
+
+// the obesrver :
+
+const headerObserver = new IntersectionObserver(stickyNav, stickyOptions);
+headerObserver.observe(header);
+
+// REVEAL SECTIONS ON SCROLL
+
+const allSections = document.querySelectorAll('.section');
+
+//callback function
+
+const revealSection = function (entries, observer) {
+  const [entry] = entries;
+
+  if (!entry.isIntersecting) return;
+
+  entry.target.classList.remove('section--hidden');
+  observer.unobserve(entry.target);
+};
+
+//Options
+
+const sectionOptions = {
+  root: null,
+  threshold: 0.15,
+};
+
+//Observer :
+
+const sectionObserver = new IntersectionObserver(revealSection, sectionOptions);
+allSections.forEach(function (section) {
+  sectionObserver.observe(section);
+  // section.classList.add('section--hidden');
+});
+
+//LAZY LOADING IMAGES
+const imgTargets = document.querySelectorAll('img[data-src]');
+
+//callback
+const loadImg = function (entries, observer) {
+  const [entry] = entries;
+  if (!entry.isIntersecting) return;
+  //replace src with data-src
+  entry.target.src = entry.target.dataset.src;
+  entry.target.addEventListener('load', function () {
+    entry.target.classList.remove('lazy-img');
+  });
+  observer.unobserve(entry.target);
+};
+
+//options
+
+const loadOptions = {
+  root: null,
+  threshold: 0,
+  rootMargin: '200px',
+};
+
+const imgObserver = new IntersectionObserver(loadImg, loadOptions);
+imgTargets.forEach(img => imgObserver.observe(img));
+
+// SLIDER
+
+const slides = document.querySelectorAll('.slide');
+const btnLeft = document.querySelector('.slider__btn--left');
+const btnRight = document.querySelector('.slider__btn--right');
+let curSlide = 0;
+const maxSlide = slides.length;
+const dotContainer = document.querySelector('.dots');
+
+// create dots based on the number of slides
+
+const createDots = function () {
+  slides.forEach(function (_, i) {
+    dotContainer.insertAdjacentHTML(
+      'beforeend',
+      `<button class="dots__dot" data-slide="${i}"></button>`
+    );
+  });
+};
+createDots();
+
+// activate the dot , make the dot belongs to the slide selected be in different color by adding a specifc class
+const activateDot = function (slide) {
+  document
+    .querySelectorAll('.dots__dot')
+    .forEach(dot => dot.classList.remove('dots__dot--active'));
+  document
+    .querySelector(`.dots__dot[data-slide="${slide}"]`)
+    .classList.add('dots__dot--active');
+};
+
+// to make the first dot activated when we reload the page
+activateDot(0);
+
+// the logic that make the slide moving
+const goToSlide = function (slide) {
+  slides.forEach(
+    (s, i) => (s.style.transform = `translateX(${100 * (i - slide)}%)`)
+  );
+};
+
+// This is to make the slides start usually from the slide 0 when we reload
+goToSlide(0);
+
+//Next slide
+
+const nextSlide = function () {
+  // if we're already at the last slide and we keep clicking it will take us back to the first slide
+  if (curSlide === maxSlide - 1) {
+    curSlide = 0;
+  } else {
+    curSlide++;
+  }
+  goToSlide(curSlide);
+  activateDot(curSlide);
+};
+
+// Previous slide
+
+const prevSlide = function () {
+  // if we're at the first slide and keep clicking , it will take us to the very last slide
+  if (curSlide === 0) {
+    curSlide = maxSlide - 1;
+  } else {
+    curSlide--;
+  }
+  goToSlide(curSlide);
+  activateDot(curSlide);
+};
+
+btnRight.addEventListener('click', nextSlide);
+btnLeft.addEventListener('click', prevSlide);
+
+// this is to make us able to navigate between slides using the keyboard buttons left and right
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowLeft') {
+    prevSlide();
+  } else {
+    nextSlide();
+  }
+});
+// this is to make us navigate between slides by clicking on the dots :
+dotContainer.addEventListener('click', function (e) {
+  if (e.target.classList.contains('dots__dot')) {
+    const slide = e.target.dataset.slide; //This will let as get the element clicked and then see the data set number of it ( data attribute is like an id)
+    goToSlide(slide);
+    activateDot(slide);
+  }
 });
 
 /////////////////////////////////////////
